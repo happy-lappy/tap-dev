@@ -24,7 +24,7 @@ jobs:
       - name: Gather repo
         run: |
           git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-bot" tap-dev || exit 1
-          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-db" ../dbase || exit 1
+          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-db" dbase || exit 1
       - name: Install deps
         run: |
           cd tap-dev
