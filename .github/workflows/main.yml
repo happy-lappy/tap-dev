@@ -20,7 +20,7 @@ jobs:
       - name: Setup Py3
         uses: actions/setup-python@v2.2.2
         with:
-          python-version: '3.9.9'
+          python-version: '3.9.12'
       - name: Gather repo
         run: |
           git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-bot" tap-dev || exit 1
