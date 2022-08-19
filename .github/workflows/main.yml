@@ -13,34 +13,64 @@ jobs:
   tapdevelop:
     runs-on: ubuntu-20.04
     steps:
-      - name: Set Git Configs & Secrets
+      - name: "Checkout"
+        uses: actions/checkout@main
+
+      - name: "Set ENV vars"
         run: |
-          git config --global user.email ${GitHubMail}
+          export TZ=Europe/Berlin
+      
+      - name: "Delete old workflow runs"
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 0
+
+      - name: "Set Git Configs & Secrets"
+        run: |
           git config --global user.name ${GitHubName}
-      - name: Setup Py3
+          git config --global user.email ${GitHubMail}
+          git config --global credential.helper store
+          echo "https://${{ secrets.GH_TOK }}@github.com" > ~/.git-credentials
+      
+      - name: "Cancel duplicate workflow runs"
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          all_but_latest: true
+          access_token: ${{ github.token }}
+
+      - name: "Setup Python 3"
         uses: actions/setup-python@v2.2.2
         with:
-          python-version: '3.9.12'
-      - name: Gather repo
-        run: |
-          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-bot" tap-dev || exit 1
-          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-db" dbase || exit 1
-      - name: Install deps
-        run: |
-          cd tap-dev
-          pip3 install wheel
-          pip3 install -r requirements.txt
-      - name: Build wheels
-        timeout-minutes: 330
+          python-version: '3.9.*'
+
+      - name: "Gather repository"
         continue-on-error: true
         run: |
-          cd tap-dev
-          python3 main.py
-      - name: Quality Control
+          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-bot" appy-dev
+          git clone "https://${{ secrets.GH_TOK }}@github.com/happy-lappy/tap-db" dbase
+
+      - name: "Install deps"
+        continue-on-error: true
         run: |
-          git clone https://github.com/${GITHUB_REPOSITORY} lupo
-          cd lupo || exit 1
+          cd appy-dev
+          pip3 install wheel
+          pip3 install -r requirements.txt
+
+      - name: "Build app package"
+        timeout-minutes: 345
+        continue-on-error: true
+        run: |
+          cd appy-dev
+          python3 main.py
+
+      - name: "Quality Control"
+        run: |
+          git clone https://github.com/${GITHUB_REPOSITORY} vwlupo
+          cd vwlupo || exit 1
           echo $(( RANDOM - ( RANDOM % RANDOM ) )) > buildid.txt
           git add buildid.txt
           git commit -m "Building [$(date -u +%D-%T%P)]"
-          git push -q "https://${{ secrets.GH_TOK }}@github.com/${GITHUB_REPOSITORY}" HEAD:main || exit 1
+          git push -q "https://${{ secrets.GH_TOK }}@github.com/${GITHUB_REPOSITORY}" HEAD:main
